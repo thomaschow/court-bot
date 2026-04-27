@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>ai.zipline.courtbot.web</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>{{COURTBOT_BIN}}</string>
+    <string>web</string>
+    <string>--host</string>
+    <string>127.0.0.1</string>
+    <string>--port</string>
+    <string>8787</string>
+  </array>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <true/>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin</string>
+    <key>COURTBOT_CONFIG</key>
+    <string>{{CONFIG_PATH}}</string>
+  </dict>
+  <key>StandardOutPath</key>
+  <string>{{LOG_DIR}}/web.out.log</string>
+  <key>StandardErrorPath</key>
+  <string>{{LOG_DIR}}/web.err.log</string>
+</dict>
+</plist>

@@ -1,0 +1,46 @@
+version: 1
+
+credentials:
+  source: keyring
+  keyring_service: courtbot
+
+defaults:
+  timezone: America/Los_Angeles
+  dry_run: false
+  log_level: INFO
+
+facilities:
+  - id: santa-clara
+    org_id: 13234
+    s_id: 16995
+    base_url: https://app.courtreserve.com
+    booking_window:
+      days_ahead: 7
+      opens_at_local: "07:00:00"
+      server_clock_offset_ms: 0
+    polling:
+      interval_seconds: 45
+      quiet_hours_local: ["22:00", "07:00"]
+      horizon_days: 7
+    member_id: null            # filled by `courtbot discover`
+    courts: []                 # filled by `courtbot discover`
+    reservation_type_id: null  # filled by `courtbot discover`
+    membership_id: null        # filled by `courtbot discover`
+
+preferences:
+  facility_rank: [santa-clara]
+  rules:
+    - name: "Saturday morning doubles"
+      day_of_week: [Sat, Sun]
+      time_windows:
+        - { start: "08:00", end: "11:00" }
+      duration_minutes: 60
+      court_whitelist: []
+      reservation_type: doubles
+
+notifications:
+  macos: true
+  webhook_url: null
+  on_success: true
+  on_failure: true
+  on_dry_run: false

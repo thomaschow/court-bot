@@ -1,0 +1,19 @@
+<table>
+  <thead><tr><th>Time</th><th>Lvl</th><th>Event</th><th>Facility</th><th>Mode</th><th>Detail</th></tr></thead>
+  <tbody>
+  {% for ev in items %}
+    <tr>
+      <td><small>{{ ev.timestamp or "" }}</small></td>
+      <td class="{% if ev.level == 'error' %}err{% elif ev.level == 'warning' %}warn{% endif %}">{{ ev.level or "" }}</td>
+      <td><strong>{{ ev.event or "" }}</strong></td>
+      <td>{{ ev.facility or "" }}</td>
+      <td>{{ ev.mode or "" }}</td>
+      <td><small>
+        {% for k, v in ev.items() if k not in ['timestamp','level','event','facility','mode'] %}
+          {{ k }}={{ v }}{% if not loop.last %} {% endif %}
+        {% endfor %}
+      </small></td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>

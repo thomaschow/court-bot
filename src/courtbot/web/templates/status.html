@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}status{% endblock %}
+{% block content %}
+<h2>Facilities</h2>
+<div class="grid">
+  {% for card in cards %}
+  <div class="card">
+    <h3>{{ card.facility.id }}</h3>
+    <p><small>org_id={{ card.facility.org_id }}</small></p>
+    <p>
+      <strong>Next window opens:</strong> {{ card.next_open.strftime("%Y-%m-%d %H:%M %Z") }}<br>
+      <small>(in {{ "%.1f"|format(card.next_open_in / 3600) }}h)</small>
+    </p>
+    <p>
+      <strong>Member ID:</strong> {{ card.facility.member_id or "—" }}<br>
+      <strong>Reservation type:</strong> {{ card.facility.reservation_type_id or "—" }}<br>
+      <strong>Courts discovered:</strong> {{ card.facility.courts|length }}<br>
+      <strong>Session file:</strong>
+      {% if card.session_exists %}<span class="ok">✓ exists</span>{% else %}<span class="warn">missing — run `courtbot login`</span>{% endif %}
+    </p>
+    <form hx-post="/actions/dry-run-race" hx-target="#dryrun-{{ card.facility.org_id }}" hx-swap="innerHTML">
+      <input type="hidden" name="facility" value="{{ card.facility.id }}">
+      <label>Date <input type="date" name="date_str" required></label>
+      <button type="submit">Dry-run race</button>
+      <pre id="dryrun-{{ card.facility.org_id }}"></pre>
+    </form>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

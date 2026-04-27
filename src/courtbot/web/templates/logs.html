@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}logs{% endblock %}
+{% block content %}
+<h2>Recent log events</h2>
+<form>
+  <label>Facility <input type="text" id="f-facility" placeholder="santa-clara"></label>
+  <label>Mode <input type="text" id="f-mode" placeholder="racer | watcher | manual"></label>
+  <label>Level <input type="text" id="f-level" placeholder="warning"></label>
+</form>
+<div id="log-tail"
+     hx-get="/logs/tail"
+     hx-trigger="load, every 2s"
+     hx-include="#f-facility, #f-mode, #f-level"
+     hx-vals='js:{
+       facility: document.getElementById("f-facility").value || null,
+       mode: document.getElementById("f-mode").value || null,
+       level: document.getElementById("f-level").value || null,
+       n: 200
+     }'
+     hx-swap="innerHTML">
+  loading…
+</div>
+{% endblock %}

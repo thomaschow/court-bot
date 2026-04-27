@@ -1,0 +1,19 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+
+.env
+config/config.yaml
+state/
+!state/.gitkeep
+
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# OS
+.DS_Store

@@ -8,6 +8,7 @@ import httpx
 
 from courtbot.courtreserve import endpoints
 from courtbot.courtreserve.errors import (
+    AllCourtsTaken,
     AuthExpired,
     CourtReserveError,
     RateLimited,
@@ -72,6 +73,37 @@ class CourtReserveClient:
     # Backwards-compat alias used by existing watcher code.
     async def read_expanded(self, *, day: ddate, extra_params: dict | None = None) -> list[SlotView]:
         return await self.read_consolidated(day=day)
+
+    async def create_reservation_with_modal(
+        self,
+        cand: BookingCandidate,
+        *,
+        modal,
+        extras: dict[str, str] | None = None,
+    ) -> str:
+        """Fast path: caller already has a fetched ModalState. Just build body + POST.
+
+        Use this from the racer where one modal is pre-fetched and reused for every
+        per-court attempt — saves ~1.5s of GETs per attempt.
+        """
+        body = build_create_reservation_form(
+            cand,
+            csrf_token=modal.csrf_token,
+            hidden_fields=modal.hidden_fields,
+            extras=extras,
+        )
+        encoded = urlencode(body)
+        headers = {
+            "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+            "X-Requested-With": "XMLHttpRequest",
+            "Accept": "application/json, text/javascript, */*; q=0.01",
+            "Origin": "https://reservations.courtreserve.com",
+            "Referer": (
+                f"https://app.courtreserve.com/Online/Reservations/Bookings/{self._org_id}"
+            ),
+        }
+        resp = await self._http.post(modal.inner_form_url, content=encoded, headers=headers)
+        return self._interpret_create(resp)
 
     async def create_reservation(
         self,
@@ -145,6 +177,9 @@ class CourtReserveClient:
             or "advance" in lower and "reserve" in lower
         ):
             raise WindowNotOpen(text[:200])
+        # GLOBAL exhaustion: every court at this time is gone — no point retrying.
+        if "all courts of this type" in lower:
+            raise AllCourtsTaken(text[:200])
         if "no longer available" in lower or "already reserved" in lower or "taken" in lower:
             raise SlotTaken(text[:200])
         if sc != 200:

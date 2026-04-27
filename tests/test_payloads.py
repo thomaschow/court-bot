@@ -58,8 +58,9 @@ def test_form_overrides_user_fields() -> None:
     assert fields["Duration"] == "60"
     assert fields["ReservationTypeId"] == "69711"
     assert fields["DisclosureAgree"] == "true"
-    # CourtId is empty — Lifetime Santa Clara has IsCourtRequired=False; server picks.
-    assert fields["CourtId"] == ""
+    # CourtId carries the candidate's court — IsCourtRequired=False is misleading;
+    # the server still requires CourtId at the API level.
+    assert fields["CourtId"] == "103"
 
 
 def test_form_drops_overridden_hidden_fields() -> None:

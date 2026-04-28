@@ -50,7 +50,7 @@ COURT_TYPE = "Hard"
 
 POLL_INTERVAL_S = 30.0
 POLL_JITTER_FRAC = 0.2
-MAX_RUNTIME_S = 12 * 3600
+MAX_RUNTIME_S = 24 * 3600
 MAX_POSTS_PER_CYCLE = 4   # cancellations are rare; 4 attempts per cycle is plenty
 MIN_DELAY_BETWEEN_POSTS_S = 1.0
 

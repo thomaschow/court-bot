@@ -40,6 +40,19 @@ CREATE TABLE IF NOT EXISTS attempts (
     created_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS ix_attempts_date ON attempts(date);
+
+CREATE TABLE IF NOT EXISTS discarded_bookings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    facility TEXT NOT NULL,
+    date TEXT NOT NULL,
+    start_time TEXT NOT NULL,
+    court_id INTEGER NOT NULL,
+    duration_minutes INTEGER,
+    reason TEXT NOT NULL,
+    created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ix_discarded_date ON discarded_bookings(date);
+CREATE INDEX IF NOT EXISTS ix_discarded_facility ON discarded_bookings(facility);
 """
 
 
@@ -161,6 +174,52 @@ def list_recent(limit: int = 50, path: Path | None = None) -> list[BookingRecord
             (limit,),
         ).fetchall()
     return [BookingRecord(**dict(r)) for r in rows]
+
+
+@dataclass
+class DiscardedRecord:
+    id: int | None
+    facility: str
+    date: str
+    start_time: str
+    court_id: int
+    duration_minutes: int | None
+    reason: str
+    created_at: str
+
+
+def record_discarded(
+    *,
+    facility: str,
+    date: str,
+    start_time: str,
+    court_id: int,
+    reason: str,
+    duration_minutes: int | None = None,
+    path: Path | None = None,
+) -> None:
+    """Append a discarded-booking row. Used by the cancellation watcher when a slot
+    matches the time/window filter but is rejected by the 30-min pairing rule.
+    """
+    with _conn(path) as c:
+        c.execute(
+            """
+            INSERT INTO discarded_bookings
+              (facility, date, start_time, court_id, duration_minutes, reason, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            (facility, date, start_time, court_id, duration_minutes, reason, _now()),
+        )
+
+
+def list_discarded(limit: int = 200, path: Path | None = None) -> list[DiscardedRecord]:
+    with _conn(path) as c:
+        rows = c.execute(
+            "SELECT id, facility, date, start_time, court_id, duration_minutes, reason, "
+            "       created_at FROM discarded_bookings ORDER BY id DESC LIMIT ?",
+            (limit,),
+        ).fetchall()
+    return [DiscardedRecord(**dict(r)) for r in rows]
 
 
 class AlreadyConfirmed(RuntimeError):

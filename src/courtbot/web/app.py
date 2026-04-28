@@ -54,6 +54,11 @@ def create_app(config_file: Path | None = None) -> FastAPI:
         rows = L.list_recent(limit=200)
         return TEMPLATES.TemplateResponse(request, "bookings.html", {"rows": rows})
 
+    @app.get("/discarded", response_class=HTMLResponse)
+    async def discarded_page(request: Request) -> HTMLResponse:
+        rows = L.list_discarded(limit=500)
+        return TEMPLATES.TemplateResponse(request, "discarded.html", {"rows": rows})
+
     @app.get("/logs", response_class=HTMLResponse)
     async def logs_page(request: Request) -> HTMLResponse:
         return TEMPLATES.TemplateResponse(request, "logs.html", {})

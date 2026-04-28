@@ -34,7 +34,7 @@ from courtbot.courtreserve.errors import (
     AllCourtsTaken, AuthExpired, CourtReserveError, RateLimited, WindowNotOpen,
 )
 from courtbot.courtreserve.payloads import BookingCandidate
-from courtbot.ledger import is_already_confirmed
+from courtbot.ledger import is_already_confirmed, record_discarded
 from courtbot.notify import notify_macos
 from courtbot.paths import config_path
 
@@ -196,7 +196,20 @@ class CancellationWatcher:
             if dur == 30 and not self._has_30min_partner(
                 snapshot, facility.id, day, start_local, court_id
             ):
-                # Standalone 30-min booking with no qualifying partner — skip per user rule.
+                # Standalone 30-min booking with no qualifying partner — record + skip.
+                try:
+                    record_discarded(
+                        facility=facility.id,
+                        date=day.isoformat(),
+                        start_time=start_local.strftime("%H:%M"),
+                        court_id=court_id,
+                        duration_minutes=30,
+                        reason="no_30min_partner",
+                    )
+                except Exception:
+                    pass
+                print(f"  [{facility.id}] {day} {start_local.strftime('%-I:%M %p')} "
+                      f"ct{court_id}: DISCARDED (no 30-min partner)")
                 return False
             if is_already_confirmed(
                 facility=facility.id, date=day.isoformat(),

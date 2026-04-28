@@ -140,15 +140,63 @@ class CancellationWatcher:
             out[d.toordinal()] = keys
         return out
 
-    async def _try_book_at(self, facility: Facility, day: ddate, start_local: dtime, court_id: int) -> bool:
+    def _has_30min_partner(
+        self,
+        snapshot: dict[int, set[SliceKey]],
+        facility_id: str,
+        day: ddate,
+        start_local: dtime,
+        court_id: int,
+    ) -> bool:
+        """A standalone 30-min booking is allowed only if a 30-min "partner" slice
+        exists in the current snapshot. Two ways to qualify:
+
+          1. Time-adjacent partner — start_local ± 30 min on ANY court.
+          2. Same-court partner within ±30 min (so the gap between bookings is at most
+             30 min and you stay on the same court).
+        """
+        slot_min = start_local.hour * 60 + start_local.minute
+        date_set = snapshot.get(day.toordinal(), set())
+        adjacent_offsets = (-30, +30)
+        for k in date_set:
+            if k.facility_id != facility_id:
+                continue
+            if k.start_minutes == slot_min and k.court_id == court_id:
+                continue  # the slice itself
+            delta = k.start_minutes - slot_min
+            # Condition 1: adjacent (delta == ±30), any court.
+            if delta in adjacent_offsets:
+                return True
+            # Condition 2: same court, |delta| ≤ 30 min (and not the same slice — covered
+            # above by the != check, plus delta != 0 since start_minutes differ).
+            if k.court_id == court_id and abs(delta) <= 30:
+                return True
+        return False
+
+    async def _try_book_at(
+        self,
+        facility: Facility,
+        day: ddate,
+        start_local: dtime,
+        court_id: int,
+        snapshot: dict[int, set[SliceKey]],
+    ) -> bool:
         """Attempt the longest-possible reservation starting at (day, start_local) on
-        the given court. Returns True if any duration succeeded."""
+        the given court. Returns True if any duration succeeded.
+
+        For 30-min durations specifically, applies the partner rule (see _has_30min_partner).
+        """
         max_dur = _max_duration_within_window(start_local)
         if max_dur is None:
             return False
         for dur in DURATIONS:
             if dur > max_dur:
                 continue
+            if dur == 30 and not self._has_30min_partner(
+                snapshot, facility.id, day, start_local, court_id
+            ):
+                # Standalone 30-min booking with no qualifying partner — skip per user rule.
+                return False
             if is_already_confirmed(
                 facility=facility.id, date=day.isoformat(),
                 start_time=start_local.strftime("%H:%M"), court_id=court_id,
@@ -243,7 +291,9 @@ class CancellationWatcher:
                         break
                     d = ddate.fromordinal(k.date_ord)
                     h, m = divmod(k.start_minutes, 60)
-                    booked = await self._try_book_at(facility, d, dtime(h, m), k.court_id)
+                    booked = await self._try_book_at(
+                        facility, d, dtime(h, m), k.court_id, snapshot,
+                    )
                     if booked:
                         await asyncio.sleep(MIN_DELAY_BETWEEN_POSTS_S)
 

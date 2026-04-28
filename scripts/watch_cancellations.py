@@ -151,25 +151,26 @@ class CancellationWatcher:
         """A standalone 30-min booking is allowed only if a 30-min "partner" slice
         exists in the current snapshot. Two ways to qualify:
 
-          1. Time-adjacent partner — start_local ± 30 min on ANY court.
-          2. Same-court partner within ±30 min (so the gap between bookings is at most
-             30 min and you stay on the same court).
+          1. Time-adjacent partner on ANY court — start_local ± 30 min.
+          2. Same court with gap ≤ 30 min between the two bookings. Since each booking
+             is 30 min, a 30-min gap means the partner starts 60 min away (and an
+             adjacent same-court partner is 30 min away). So the same-court case
+             accepts |start_delta| ∈ {30, 60}.
         """
         slot_min = start_local.hour * 60 + start_local.minute
         date_set = snapshot.get(day.toordinal(), set())
-        adjacent_offsets = (-30, +30)
         for k in date_set:
             if k.facility_id != facility_id:
                 continue
             if k.start_minutes == slot_min and k.court_id == court_id:
                 continue  # the slice itself
             delta = k.start_minutes - slot_min
-            # Condition 1: adjacent (delta == ±30), any court.
-            if delta in adjacent_offsets:
+            # Condition 1: adjacent in time (any court).
+            if abs(delta) == 30:
                 return True
-            # Condition 2: same court, |delta| ≤ 30 min (and not the same slice — covered
-            # above by the != check, plus delta != 0 since start_minutes differ).
-            if k.court_id == court_id and abs(delta) <= 30:
+            # Condition 2: same court, gap ≤ 30 min (start delta of 30 = adjacent same
+            # court, 60 = 30-min gap same court).
+            if k.court_id == court_id and abs(delta) in (30, 60):
                 return True
         return False
 

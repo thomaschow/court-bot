@@ -58,7 +58,7 @@ COURT_TYPE = "Hard"
 
 POLL_INTERVAL_S = 90.0
 POLL_JITTER_FRAC = 0.2
-MAX_RUNTIME_S = 24 * 3600
+MAX_RUNTIME_S = 365 * 24 * 3600   # effectively unbounded — stop with TaskStop / Ctrl-C
 MAX_POSTS_PER_CYCLE = 6
 MIN_DELAY_BETWEEN_POSTS_S = 2.0
 

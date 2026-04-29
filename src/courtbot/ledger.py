@@ -49,11 +49,25 @@ CREATE TABLE IF NOT EXISTS discarded_bookings (
     court_id INTEGER NOT NULL,
     duration_minutes INTEGER,
     reason TEXT NOT NULL,
+    neighbors TEXT,                -- JSON list of {court_id, start, delta_min}
     created_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS ix_discarded_date ON discarded_bookings(date);
 CREATE INDEX IF NOT EXISTS ix_discarded_facility ON discarded_bookings(facility);
 """
+
+# Lightweight schema migrations for existing DBs.
+_MIGRATIONS = [
+    # column-add migrations: (table, column, type)
+    ("discarded_bookings", "neighbors", "TEXT"),
+]
+
+
+def _apply_migrations(c: sqlite3.Connection) -> None:
+    for table, column, coltype in _MIGRATIONS:
+        cols = {row[1] for row in c.execute(f"PRAGMA table_info({table})").fetchall()}
+        if column not in cols:
+            c.execute(f"ALTER TABLE {table} ADD COLUMN {column} {coltype}")
 
 
 @dataclass
@@ -79,6 +93,7 @@ def _conn(path: Path | None = None) -> Iterator[sqlite3.Connection]:
     c.row_factory = sqlite3.Row
     try:
         c.executescript(SCHEMA)
+        _apply_migrations(c)
         yield c
     finally:
         c.close()
@@ -185,6 +200,7 @@ class DiscardedRecord:
     court_id: int
     duration_minutes: int | None
     reason: str
+    neighbors: str | None
     created_at: str
 
 
@@ -196,19 +212,27 @@ def record_discarded(
     court_id: int,
     reason: str,
     duration_minutes: int | None = None,
+    neighbors: str | None = None,
     path: Path | None = None,
 ) -> None:
     """Append a discarded-booking row. Used by the cancellation watcher when a slot
     matches the time/window filter but is rejected by the 30-min pairing rule.
+
+    `neighbors` is a JSON-serialised string capturing the slices around the discarded
+    slot at scan time (court id, local start, signed minutes-delta from the discarded
+    slot, and which condition each slice would satisfy if the rule were relaxed).
+    Useful for auditing — answers "would a less restrictive rule have caught this?".
     """
     with _conn(path) as c:
         c.execute(
             """
             INSERT INTO discarded_bookings
-              (facility, date, start_time, court_id, duration_minutes, reason, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+              (facility, date, start_time, court_id, duration_minutes, reason, neighbors,
+               created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (facility, date, start_time, court_id, duration_minutes, reason, _now()),
+            (facility, date, start_time, court_id, duration_minutes, reason,
+             neighbors, _now()),
         )
 
 
@@ -216,7 +240,8 @@ def list_discarded(limit: int = 200, path: Path | None = None) -> list[Discarded
     with _conn(path) as c:
         rows = c.execute(
             "SELECT id, facility, date, start_time, court_id, duration_minutes, reason, "
-            "       created_at FROM discarded_bookings ORDER BY id DESC LIMIT ?",
+            "       neighbors, created_at FROM discarded_bookings "
+            "ORDER BY id DESC LIMIT ?",
             (limit,),
         ).fetchall()
     return [DiscardedRecord(**dict(r)) for r in rows]

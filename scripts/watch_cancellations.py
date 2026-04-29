@@ -16,6 +16,7 @@ Stops on signal or after MAX_RUNTIME_S.
 """
 
 import asyncio
+import json
 import random
 import signal
 import time as time_mod
@@ -140,6 +141,53 @@ class CancellationWatcher:
             out[d.toordinal()] = keys
         return out
 
+    def _capture_neighbors(
+        self,
+        snapshot: dict[int, set[SliceKey]],
+        facility_id: str,
+        day: ddate,
+        start_local: dtime,
+        court_id: int,
+        within_min: int = 90,
+    ) -> str:
+        """Serialise neighboring slices around the discarded slot for audit purposes.
+
+        Returns a JSON string of [{court_id, start, delta_min, qualifies_under}, ...]
+        sorted by absolute |delta_min|. `qualifies_under` lists which relaxation rule(s)
+        the neighbor would satisfy:
+          - 'adjacent_any_court' (delta == ±30)
+          - 'same_court_30min_gap' (same court, |delta| in {30, 60})
+          - 'same_court_60min_gap' (same court, |delta| in {30, 60, 90})
+          - empty list = no rule we're tracking
+        """
+        slot_min = start_local.hour * 60 + start_local.minute
+        date_set = snapshot.get(day.toordinal(), set())
+        out = []
+        for k in date_set:
+            if k.facility_id != facility_id:
+                continue
+            if k.start_minutes == slot_min and k.court_id == court_id:
+                continue
+            delta = k.start_minutes - slot_min
+            if abs(delta) > within_min:
+                continue
+            qualifies = []
+            if abs(delta) == 30:
+                qualifies.append("adjacent_any_court")
+            if k.court_id == court_id and abs(delta) in (30, 60):
+                qualifies.append("same_court_30min_gap")
+            if k.court_id == court_id and abs(delta) in (30, 60, 90):
+                qualifies.append("same_court_60min_gap")
+            h, m = divmod(k.start_minutes, 60)
+            out.append({
+                "court_id": k.court_id,
+                "start": f"{h:02d}:{m:02d}",
+                "delta_min": delta,
+                "qualifies_under": qualifies,
+            })
+        out.sort(key=lambda x: (abs(x["delta_min"]), x["court_id"]))
+        return json.dumps(out)
+
     def _has_30min_partner(
         self,
         snapshot: dict[int, set[SliceKey]],
@@ -198,6 +246,9 @@ class CancellationWatcher:
             ):
                 # Standalone 30-min booking with no qualifying partner — record + skip.
                 try:
+                    neighbors = self._capture_neighbors(
+                        snapshot, facility.id, day, start_local, court_id,
+                    )
                     record_discarded(
                         facility=facility.id,
                         date=day.isoformat(),
@@ -205,6 +256,7 @@ class CancellationWatcher:
                         court_id=court_id,
                         duration_minutes=30,
                         reason="no_30min_partner",
+                        neighbors=neighbors,
                     )
                 except Exception:
                     pass

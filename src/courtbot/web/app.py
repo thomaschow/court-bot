@@ -18,6 +18,18 @@ WEB_DIR = Path(__file__).parent
 TEMPLATES = Jinja2Templates(directory=str(WEB_DIR / "templates"))
 
 
+def _from_json(s):
+    if not s:
+        return []
+    try:
+        return json.loads(s)
+    except (TypeError, ValueError):
+        return []
+
+
+TEMPLATES.env.filters["fromjson"] = _from_json
+
+
 def create_app(config_file: Path | None = None) -> FastAPI:
     app = FastAPI(title="courtbot dashboard")
     app.mount("/static", StaticFiles(directory=str(WEB_DIR / "static")), name="static")

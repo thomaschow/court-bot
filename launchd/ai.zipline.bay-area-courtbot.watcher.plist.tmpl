@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>ai.zipline.bay-area-courtbot.watcher</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>{{COURTBOT_BIN}}</string>
+    <string>watch</string>
+  </array>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <dict>
+    <key>SuccessfulExit</key>
+    <false/>
+    <key>Crashed</key>
+    <true/>
+  </dict>
+  <key>ThrottleInterval</key>
+  <integer>30</integer>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin</string>
+    <key>COURTBOT_CONFIG</key>
+    <string>{{CONFIG_PATH}}</string>
+  </dict>
+  <key>StandardOutPath</key>
+  <string>{{LOG_DIR}}/watcher.out.log</string>
+  <key>StandardErrorPath</key>
+  <string>{{LOG_DIR}}/watcher.err.log</string>
+</dict>
+</plist>

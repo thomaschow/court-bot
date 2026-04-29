@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% set active_page = 'discarded' %}
+{% block title %}discarded{% endblock %}
+{% block content %}
+<h2>{{ area.label if area else '' }} — Discarded bookings</h2>
+<p><small>Slots that matched the time/window filter but were rejected by a constraint
+(e.g., the 30-minute pairing rule). Useful to spot near-misses and tune the rules.
+The "neighbors" column shows what other 30-min slices were available within ±90 min
+at scan time, so you can audit "would a less restrictive rule have caught this?".</small></p>
+{% if not rows %}
+  <p><em>No discards yet.</em></p>
+{% else %}
+<table>
+  <thead>
+    <tr>
+      <th>When recorded</th>
+      <th>Facility</th>
+      <th>Date</th>
+      <th>Start</th>
+      <th>Dur</th>
+      <th>Court #</th>
+      <th>Reason</th>
+      <th>Neighbors at scan time</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for r in rows %}
+    <tr>
+      <td><small>{{ r.created_at }}</small></td>
+      <td>{{ r.facility }}</td>
+      <td>{{ r.date }}</td>
+      <td>{{ r.start_time }}</td>
+      <td>{{ r.duration_minutes or "" }}{% if r.duration_minutes %}m{% endif %}</td>
+      <td>{{ r.court_id }}</td>
+      <td><code>{{ r.reason }}</code></td>
+      <td>
+        {% if r.neighbors %}
+          {% set nbrs = r.neighbors|fromjson %}
+          {% if nbrs %}
+            <details>
+              <summary><small>{{ nbrs|length }} slice(s) within ±90min</small></summary>
+              <ul style="margin-top:0.4rem; padding-left:1rem;">
+                {% for n in nbrs %}
+                  <li>
+                    <code>{{ n.start }}</code>
+                    ct<code>{{ n.court_id }}</code>
+                    (Δ{{ "%+d"|format(n.delta_min) }}m)
+                    {% if n.qualifies_under %}
+                      — would qualify under: {% for q in n.qualifies_under %}<code>{{ q }}</code>{% if not loop.last %}, {% endif %}{% endfor %}
+                    {% else %}
+                      — <em>no rule match</em>
+                    {% endif %}
+                  </li>
+                {% endfor %}
+              </ul>
+            </details>
+          {% else %}
+            <small><em>no neighbors within ±90min</em></small>
+          {% endif %}
+        {% else %}
+          <small><em>(pre-migration row)</em></small>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+<p><small>Showing {{ rows|length }} discards (newest first).</small></p>
+{% endif %}
+{% endblock %}

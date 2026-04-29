@@ -32,14 +32,15 @@ dev = [
 ]
 
 [project.scripts]
-courtbot = "courtbot.cli:app"
+bay-area-courtbot = "bay_area_courtbot.cli:app"
+seattle-courtbot = "seattle_courtbot.cli:app"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/courtbot"]
+packages = ["src/bay_area_courtbot", "src/seattle_courtbot"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

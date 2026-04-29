@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>courtbot — {% block title %}status{% endblock %}</title>
+  <link rel="stylesheet" href="/static/pico.min.css">
+  <script src="/static/htmx.min.js"></script>
+  <style>
+    body { max-width: 1100px; margin: 1rem auto; padding: 0 1rem; }
+    nav ul { display: flex; gap: 1rem; list-style: none; padding: 0; align-items: baseline; }
+    nav.area-tabs { background: #f6f6f6; padding: 0.4rem 0.8rem; border-radius: 6px 6px 0 0;
+                    border-bottom: 2px solid #ccc; }
+    nav.area-tabs a { padding: 0.25rem 0.6rem; border-radius: 4px; }
+    nav.area-tabs a.active { background: #fff; border: 1px solid #ccc; border-bottom-color: #fff;
+                             margin-bottom: -3px; font-weight: bold; }
+    nav.page-tabs { padding: 0.5rem 0; border-bottom: 1px solid #eee; }
+    nav.page-tabs a { font-size: 0.95rem; }
+    nav.page-tabs a.active { font-weight: bold; }
+    .grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(280px,1fr)); }
+    .card { border: 1px solid #ccc4; border-radius: 8px; padding: 1rem; }
+    table { width: 100%; font-size: 0.9rem; }
+    pre { white-space: pre-wrap; }
+    .ok { color: #2ecc40; }
+    .warn { color: #ff851b; }
+    .err { color: #ff4136; }
+    .empty-state { color: #888; font-style: italic; padding: 1rem 0; }
+  </style>
+</head>
+<body>
+  <nav class="area-tabs" aria-label="Area">
+    <ul>
+      <li><strong>courtbot</strong></li>
+      {% if areas %}
+        {% for a in areas %}
+          <li><a href="/areas/{{ a.id }}/" {% if area and area.id == a.id %}class="active"{% endif %}>{{ a.label }}</a></li>
+        {% endfor %}
+      {% endif %}
+    </ul>
+  </nav>
+  {% if area %}
+  <nav class="page-tabs" aria-label="Page">
+    <ul>
+      <li><a href="/areas/{{ area.id }}/" {% if active_page == 'status' %}class="active"{% endif %}>Status</a></li>
+      <li><a href="/areas/{{ area.id }}/bookings" {% if active_page == 'bookings' %}class="active"{% endif %}>Bookings</a></li>
+      <li><a href="/areas/{{ area.id }}/discarded" {% if active_page == 'discarded' %}class="active"{% endif %}>Discarded</a></li>
+      <li><a href="/areas/{{ area.id }}/logs" {% if active_page == 'logs' %}class="active"{% endif %}>Logs</a></li>
+      <li><a href="/areas/{{ area.id }}/config" {% if active_page == 'config' %}class="active"{% endif %}>Config</a></li>
+    </ul>
+  </nav>
+  {% endif %}
+  {% block content %}{% endblock %}
+</body>
+</html>

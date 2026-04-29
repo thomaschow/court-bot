@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% set active_page = 'config' %}
+{% block title %}config{% endblock %}
+{% block content %}
+<h2>{{ area.label if area else '' }} — Config</h2>
+<p><small>{{ path }}</small></p>
+{% if not raw %}
+  <div class="empty-state">
+    Config file does not exist yet at <code>{{ path }}</code>. Saving below will create it.
+  </div>
+{% endif %}
+<form method="post" action="/areas/{{ area.id }}/config">
+  <textarea name="yaml_text" rows="30" style="width:100%; font-family: monospace;">{{ raw }}</textarea>
+  <button type="submit">
+    Save{% if area.facility_module == 'bay_area_courtbot' %} (validates with Pydantic){% else %} (raw write — schema validation TBD){% endif %}
+  </button>
+</form>
+{% endblock %}

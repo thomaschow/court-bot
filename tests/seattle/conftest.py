@@ -1,6 +1,6 @@
 import sys
 from pathlib import Path
 
-# tests/bay_area/ → tests/ → repo root → src/
+# tests/seattle/ → tests/ → repo root → src/
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))

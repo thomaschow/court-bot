@@ -57,8 +57,30 @@ MIN_DELAY_BETWEEN_POSTS_S = 1.0
 
 # Per-(facility, date) blacklist on WindowNotOpen.
 WINDOW_BLACKLIST_S = 1800
-# Acceptable durations (longest first). API min is 30min, max 2h.
+
+# Granularity of a single schedule slice (CourtReserve quantum at Lifetime is 30 min).
+SLOT_DURATION_MIN = 30
+# Acceptable booking durations to attempt, longest first. API min/max is 30/120 min.
 DURATIONS = (120, 90, 60, 30)
+# Short-booking pairing rule. A booking of duration == SLOT_DURATION_MIN is allowed
+# only when an "available partner" slice exists nearby. The rule has two arms,
+# each with its own configurable gap-tolerance:
+#   - any-court arm: a partner on ANY court whose end-to-start gap with our slot is
+#     ≤ MAX_ANY_COURT_GAP_MIN (0 = must be adjacent)
+#   - same-court arm: a partner on the SAME court whose gap is ≤ MAX_SAME_COURT_GAP_MIN
+# Either arm passing means the booking proceeds.
+MAX_ANY_COURT_GAP_MIN = 0
+MAX_SAME_COURT_GAP_MIN = 30
+# Discard reason label written into the ledger. Generic so future rules can reuse it.
+DISCARD_REASON = "no_partner"
+# Relaxation levels evaluated against each discarded slot's neighbours, so the
+# dashboard can answer "would a less restrictive rule have caught this?". Each entry
+# is (label, max_any_court_gap_min, max_same_court_gap_min).
+RELAXATION_LEVELS = [
+    ("adjacent_any_court", 0, 0),
+    ("same_court_30min_gap", 0, 30),
+    ("same_court_60min_gap", 0, 60),
+]
 
 
 @dataclass(frozen=True)
@@ -141,6 +163,16 @@ class CancellationWatcher:
             out[d.toordinal()] = keys
         return out
 
+    @staticmethod
+    def _gap_minutes(delta_min: int, slot_duration_min: int) -> int:
+        """Translate a start-time delta between two same-duration slices into the gap
+        (end-of-earlier → start-of-later). For 30-min slots a delta of 30 is adjacent
+        (gap 0); a delta of 60 means a 30-min gap; etc. Returns -1 for overlapping
+        deltas (shouldn't happen at fixed granularity, but safe).
+        """
+        gap = abs(delta_min) - slot_duration_min
+        return gap if gap >= 0 else -1
+
     def _capture_neighbors(
         self,
         snapshot: dict[int, set[SliceKey]],
@@ -148,17 +180,17 @@ class CancellationWatcher:
         day: ddate,
         start_local: dtime,
         court_id: int,
+        *,
         within_min: int = 90,
+        slot_duration_min: int = SLOT_DURATION_MIN,
+        relaxation_levels: list[tuple[str, int, int]] = RELAXATION_LEVELS,
     ) -> str:
         """Serialise neighboring slices around the discarded slot for audit purposes.
 
-        Returns a JSON string of [{court_id, start, delta_min, qualifies_under}, ...]
-        sorted by absolute |delta_min|. `qualifies_under` lists which relaxation rule(s)
-        the neighbor would satisfy:
-          - 'adjacent_any_court' (delta == ±30)
-          - 'same_court_30min_gap' (same court, |delta| in {30, 60})
-          - 'same_court_60min_gap' (same court, |delta| in {30, 60, 90})
-          - empty list = no rule we're tracking
+        Returns a JSON string of [{court_id, start, delta_min, gap_min,
+        qualifies_under}, ...] sorted by absolute |delta_min|. For each entry,
+        `qualifies_under` lists which relaxation rules (from `relaxation_levels`) the
+        neighbor satisfies — i.e., would have made it a valid partner.
         """
         slot_min = start_local.hour * 60 + start_local.minute
         date_set = snapshot.get(day.toordinal(), set())
@@ -171,39 +203,49 @@ class CancellationWatcher:
             delta = k.start_minutes - slot_min
             if abs(delta) > within_min:
                 continue
+            gap_min = self._gap_minutes(delta, slot_duration_min)
             qualifies = []
-            if abs(delta) == 30:
-                qualifies.append("adjacent_any_court")
-            if k.court_id == court_id and abs(delta) in (30, 60):
-                qualifies.append("same_court_30min_gap")
-            if k.court_id == court_id and abs(delta) in (30, 60, 90):
-                qualifies.append("same_court_60min_gap")
+            for label, any_gap, same_gap in relaxation_levels:
+                if gap_min < 0:
+                    continue
+                if gap_min <= any_gap:
+                    qualifies.append(label)
+                    continue
+                if k.court_id == court_id and gap_min <= same_gap:
+                    qualifies.append(label)
             h, m = divmod(k.start_minutes, 60)
             out.append({
                 "court_id": k.court_id,
                 "start": f"{h:02d}:{m:02d}",
                 "delta_min": delta,
+                "gap_min": gap_min,
                 "qualifies_under": qualifies,
             })
         out.sort(key=lambda x: (abs(x["delta_min"]), x["court_id"]))
         return json.dumps(out)
 
-    def _has_30min_partner(
+    def _has_partner(
         self,
         snapshot: dict[int, set[SliceKey]],
         facility_id: str,
         day: ddate,
         start_local: dtime,
         court_id: int,
+        *,
+        slot_duration_min: int = SLOT_DURATION_MIN,
+        max_any_court_gap_min: int = MAX_ANY_COURT_GAP_MIN,
+        max_same_court_gap_min: int = MAX_SAME_COURT_GAP_MIN,
     ) -> bool:
-        """A standalone 30-min booking is allowed only if a 30-min "partner" slice
-        exists in the current snapshot. Two ways to qualify:
+        """Does the snapshot contain a partner slice for the given slot under the
+        configured pairing rule? Two arms (either passing → True):
 
-          1. Time-adjacent partner on ANY court — start_local ± 30 min.
-          2. Same court with gap ≤ 30 min between the two bookings. Since each booking
-             is 30 min, a 30-min gap means the partner starts 60 min away (and an
-             adjacent same-court partner is 30 min away). So the same-court case
-             accepts |start_delta| ∈ {30, 60}.
+          1. Any-court arm: an open slice exists on any court with end-to-start gap
+             ≤ `max_any_court_gap_min`.
+          2. Same-court arm: an open slice exists on the same court with gap
+             ≤ `max_same_court_gap_min`.
+
+        Defaults to module constants so the watcher's behavior is set at the top of
+        the file, but the method is fully parameterised for tests / experiments.
         """
         slot_min = start_local.hour * 60 + start_local.minute
         date_set = snapshot.get(day.toordinal(), set())
@@ -211,14 +253,14 @@ class CancellationWatcher:
             if k.facility_id != facility_id:
                 continue
             if k.start_minutes == slot_min and k.court_id == court_id:
-                continue  # the slice itself
+                continue
             delta = k.start_minutes - slot_min
-            # Condition 1: adjacent in time (any court).
-            if abs(delta) == 30:
+            gap_min = self._gap_minutes(delta, slot_duration_min)
+            if gap_min < 0:
+                continue
+            if gap_min <= max_any_court_gap_min:
                 return True
-            # Condition 2: same court, gap ≤ 30 min (start delta of 30 = adjacent same
-            # court, 60 = 30-min gap same court).
-            if k.court_id == court_id and abs(delta) in (30, 60):
+            if k.court_id == court_id and gap_min <= max_same_court_gap_min:
                 return True
         return False
 
@@ -241,10 +283,10 @@ class CancellationWatcher:
         for dur in DURATIONS:
             if dur > max_dur:
                 continue
-            if dur == 30 and not self._has_30min_partner(
+            if dur == SLOT_DURATION_MIN and not self._has_partner(
                 snapshot, facility.id, day, start_local, court_id
             ):
-                # Standalone 30-min booking with no qualifying partner — record + skip.
+                # Standalone short booking with no qualifying partner — record + skip.
                 try:
                     neighbors = self._capture_neighbors(
                         snapshot, facility.id, day, start_local, court_id,
@@ -254,14 +296,14 @@ class CancellationWatcher:
                         date=day.isoformat(),
                         start_time=start_local.strftime("%H:%M"),
                         court_id=court_id,
-                        duration_minutes=30,
-                        reason="no_30min_partner",
+                        duration_minutes=dur,
+                        reason=DISCARD_REASON,
                         neighbors=neighbors,
                     )
                 except Exception:
                     pass
                 print(f"  [{facility.id}] {day} {start_local.strftime('%-I:%M %p')} "
-                      f"ct{court_id}: DISCARDED (no 30-min partner)")
+                      f"ct{court_id}: DISCARDED ({DISCARD_REASON})")
                 return False
             if is_already_confirmed(
                 facility=facility.id, date=day.isoformat(),

@@ -20,17 +20,28 @@
   {% for card in cards %}
   <div class="card">
     <h3>{{ card.facility.id }}</h3>
-    <p><small>org_id={{ card.facility.org_id }}</small></p>
+    {% set f = card.facility %}
+    {% if f.org_id is defined %}
+      <p><small>org_id={{ f.org_id }}</small></p>
+    {% elif f.facility_id is defined %}
+      <p><small>facility_id={{ f.facility_id }}</small></p>
+    {% endif %}
+    {% if card.next_open %}
     <p>
       <strong>Next window opens:</strong> {{ card.next_open.strftime("%Y-%m-%d %H:%M %Z") }}<br>
       <small>(in {{ "%.1f"|format(card.next_open_in / 3600) }}h)</small>
     </p>
+    {% endif %}
     <p>
-      <strong>Member ID:</strong> {{ card.facility.member_id or "—" }}<br>
-      <strong>Reservation type:</strong> {{ card.facility.reservation_type_id or "—" }}<br>
-      <strong>Courts discovered:</strong> {{ card.facility.courts|length }}<br>
-      <strong>Session file:</strong>
-      {% if card.session_exists %}<span class="ok">✓ exists</span>{% else %}<span class="warn">missing — run `courtbot login`</span>{% endif %}
+      {% if f.member_id is defined %}<strong>Member ID:</strong> {{ f.member_id or "—" }}<br>{% endif %}
+      {% if f.reservation_type_id is defined %}<strong>Reservation type:</strong> {{ f.reservation_type_id or "—" }}<br>{% endif %}
+      <strong>Courts discovered:</strong> {{ f.courts|length }}<br>
+      <strong>Session:</strong>
+      {% if card.session_path %}
+        {% if card.session_exists %}<span class="ok">✓ exists</span>{% else %}<span class="warn">missing</span>{% endif %}
+      {% else %}
+        <small class="warn">shared session — run `seattle-courtbot login`</small>
+      {% endif %}
     </p>
     {% if area.id == 'bay-area' %}
     <form hx-post="/areas/{{ area.id }}/actions/dry-run-race" hx-target="#dryrun-{{ card.facility.org_id }}" hx-swap="innerHTML">

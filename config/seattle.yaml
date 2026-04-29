@@ -1,21 +1,474 @@
 version: 1
-
 credentials:
   source: keyring
   keyring_service: seattle-courtbot
-
 defaults:
   timezone: America/Los_Angeles
   log_level: INFO
-
-# Filled by `seattle-courtbot discover` once the API surface is mapped.
 member_id: null
-facilities: []
-
+facilities:
+- id: alki-playfield
+  name: Alki Playfield
+  facility_id: 134
+  tenant_slug: seattle
+  courts:
+  - id: 1146
+    name: Alki Playfield Tennis Court 01
+    subgroup_id: null
+- id: amy-yee-tennis-center-aytc
+  name: Amy Yee Tennis Center (AYTC)
+  facility_id: 2
+  tenant_slug: seattle
+  courts:
+  - id: 279
+    name: AYTC Outdoor Tennis Court 01
+    subgroup_id: null
+  - id: 280
+    name: AYTC Outdoor Tennis Court 02
+    subgroup_id: null
+  - id: 281
+    name: AYTC Outdoor Tennis Court 03
+    subgroup_id: null
+  - id: 282
+    name: AYTC Outdoor Tennis Court 04
+    subgroup_id: null
+  - id: 283
+    name: AYTC Outdoor Tennis Court 05
+    subgroup_id: null
+  - id: 284
+    name: AYTC Outdoor Tennis Court 06
+    subgroup_id: null
+- id: ballard-high-school-playfield
+  name: Ballard High School Playfield
+  facility_id: 150
+  tenant_slug: seattle
+  courts:
+  - id: 1089
+    name: Ballard HS Tennis Court 1
+    subgroup_id: null
+  - id: 1091
+    name: Ballard HS Tennis Court 2
+    subgroup_id: null
+  - id: 1092
+    name: Ballard HS Tennis Court 3
+    subgroup_id: null
+  - id: 1093
+    name: Ballard HS Tennis Court 4
+    subgroup_id: null
+- id: beacon-hill-playfield
+  name: Beacon Hill Playfield
+  facility_id: 136
+  tenant_slug: seattle
+  courts:
+  - id: 1319
+    name: Beacon Hill Playfield Tennis Court 01
+    subgroup_id: null
+- id: bitter-lake-playfield
+  name: Bitter Lake Playfield
+  facility_id: 137
+  tenant_slug: seattle
+  courts:
+  - id: 1315
+    name: Bitter Lake Playfield Tennis Court 01
+    subgroup_id: null
+  - id: 1316
+    name: Bitter Lake Playfield Tennis Court 02
+    subgroup_id: null
+  - id: 1317
+    name: Bitter Lake Playfield Tennis Court 03
+    subgroup_id: null
+- id: brighton-playfield
+  name: Brighton Playfield
+  facility_id: 138
+  tenant_slug: seattle
+  courts:
+  - id: 1323
+    name: Brighton Playfield Tennis Court 01
+    subgroup_id: null
+- id: bryant-playground
+  name: Bryant Playground
+  facility_id: 73
+  tenant_slug: seattle
+  courts:
+  - id: 1325
+    name: Bryant Playground Tennis Court 01
+    subgroup_id: null
+- id: david-rodgers-park
+  name: David Rodgers Park
+  facility_id: 93
+  tenant_slug: seattle
+  courts:
+  - id: 1330
+    name: David Rodgers Park Tennis Court 01
+    subgroup_id: null
+  - id: 1331
+    name: David Rodgers Park Tennis Court 02
+    subgroup_id: null
+- id: dearborn-park
+  name: Dearborn Park
+  facility_id: 44
+  tenant_slug: seattle
+  courts:
+  - id: 1333
+    name: Dearborn Park Tennis Court 01
+    subgroup_id: null
+- id: delridge-playfield
+  name: Delridge Playfield
+  facility_id: 141
+  tenant_slug: seattle
+  courts:
+  - id: 1336
+    name: Delridge Playfield Tennis Court 02
+    subgroup_id: null
+- id: discovery-park
+  name: Discovery Park
+  facility_id: 96
+  tenant_slug: seattle
+  courts:
+  - id: 1337
+    name: Discovery Park Tennis Court 01
+    subgroup_id: null
+- id: froula-playground
+  name: Froula Playground
+  facility_id: 208
+  tenant_slug: seattle
+  courts:
+  - id: 1339
+    name: Froula Playground Tennis Court 01
+    subgroup_id: null
+- id: garfield-playfield
+  name: Garfield Playfield
+  facility_id: 144
+  tenant_slug: seattle
+  courts:
+  - id: 1342
+    name: Garfield Playfield Tennis Court 02
+    subgroup_id: null
+- id: gilman-playfield
+  name: Gilman Playfield
+  facility_id: 146
+  tenant_slug: seattle
+  courts:
+  - id: 1344
+    name: Gilman Playfield Tennis Court 01
+    subgroup_id: null
+- id: green-lake-park
+  name: Green Lake Park
+  facility_id: 10
+  tenant_slug: seattle
+  courts:
+  - id: 181
+    name: Green Lake Park West Tennis Court 01
+    subgroup_id: null
+- id: hiawatha-playfield
+  name: Hiawatha Playfield
+  facility_id: 147
+  tenant_slug: seattle
+  courts:
+  - id: 1346
+    name: Hiawatha Playfield Tennis Court 01
+    subgroup_id: null
+  - id: 1347
+    name: Hiawatha Playfield Tennis Court 02
+    subgroup_id: null
+- id: ingraham-high-school-athletics-complex
+  name: Ingraham High School Athletics Complex
+  facility_id: 159
+  tenant_slug: seattle
+  courts:
+  - id: 1095
+    name: Ingraham HS Tennis Court 1
+    subgroup_id: null
+  - id: 1096
+    name: Ingraham HS Tennis Court 2
+    subgroup_id: null
+  - id: 1097
+    name: Ingraham HS Tennis Court 3
+    subgroup_id: null
+  - id: 1098
+    name: Ingraham HS Tennis Court 4
+    subgroup_id: null
+  - id: 2695
+    name: Ingraham HS Tennis Court 5
+    subgroup_id: null
+  - id: 2696
+    name: Ingraham HS Tennis Court 6
+    subgroup_id: null
+- id: jefferson-park-previously-lid-playfield
+  name: Jefferson Park (previously Lid Playfield)
+  facility_id: 271
+  tenant_slug: seattle
+  courts:
+  - id: 2277
+    name: Jefferson Park Lid Tennis Court Lower 01
+    subgroup_id: null
+  - id: 2278
+    name: Jefferson Park Lid Tennis Court Lower 02
+    subgroup_id: null
+  - id: 777
+    name: Jefferson Park Lid Tennis Court Upper 01
+    subgroup_id: null
+- id: laurelhurst-playfield
+  name: Laurelhurst Playfield
+  facility_id: 372
+  tenant_slug: seattle
+  courts:
+  - id: 1353
+    name: Laurelhurst Playfield Tennis Court 01
+    subgroup_id: null
+  - id: 1354
+    name: Laurelhurst Playfield Tennis Court 02
+    subgroup_id: null
+  - id: 1355
+    name: Laurelhurst Playfield Tennis Court 03
+    subgroup_id: null
+- id: lower-woodland-playfield
+  name: Lower Woodland Playfield
+  facility_id: 13
+  tenant_slug: seattle
+  courts:
+  - id: 355
+    name: Lower Woodland Playfield Tennis Court 03
+    subgroup_id: null
+  - id: 356
+    name: Lower Woodland Playfield Tennis Court 04
+    subgroup_id: null
+  - id: 357
+    name: Lower Woodland Playfield Tennis Court 05
+    subgroup_id: null
+  - id: 358
+    name: Lower Woodland Playfield Tennis Court 06
+    subgroup_id: null
+  - id: 359
+    name: Lower Woodland Playfield Tennis Court 07
+    subgroup_id: null
+  - id: 360
+    name: Lower Woodland Playfield Tennis Court 08
+    subgroup_id: null
+  - id: 369
+    name: Lower Woodland Playfield Upper Court 01
+    subgroup_id: null
+  - id: 370
+    name: Lower Woodland Playfield Upper Court 02
+    subgroup_id: null
+  - id: 371
+    name: Lower Woodland Playfield Upper Court 03
+    subgroup_id: null
+- id: madison-park
+  name: Madison Park
+  facility_id: 427
+  tenant_slug: seattle
+  courts:
+  - id: 1359
+    name: Madison Park Tennis Court 01
+    subgroup_id: null
+- id: madrona-playground
+  name: Madrona Playground
+  facility_id: 449
+  tenant_slug: seattle
+  courts:
+  - id: 2280
+    name: Madrona Playground Tennis Court 02
+    subgroup_id: null
+- id: magnolia-park
+  name: Magnolia Park
+  facility_id: 454
+  tenant_slug: seattle
+  courts:
+  - id: 1362
+    name: Magnolia Park Tennis Court 02
+    subgroup_id: null
+- id: magnolia-playfield
+  name: Magnolia Playfield
+  facility_id: 455
+  tenant_slug: seattle
+  courts:
+  - id: 1363
+    name: Magnolia Playfield Tennis Court 01
+    subgroup_id: null
+  - id: 1365
+    name: Magnolia Playfield Tennis Court 03
+    subgroup_id: null
+  - id: 1366
+    name: Magnolia Playfield Tennis Court 04
+    subgroup_id: null
+- id: meadowbrook-playfield
+  name: Meadowbrook Playfield
+  facility_id: 295
+  tenant_slug: seattle
+  courts:
+  - id: 1367
+    name: Meadowbrook Playfield Tennis Court 01
+    subgroup_id: null
+  - id: 1368
+    name: Meadowbrook Playfield Tennis Court 02
+    subgroup_id: null
+  - id: 1369
+    name: Meadowbrook Playfield Tennis Court 03
+    subgroup_id: null
+- id: miller-playfield
+  name: Miller Playfield
+  facility_id: 304
+  tenant_slug: seattle
+  courts:
+  - id: 1374
+    name: Miller Playfield Tennis Court 02
+    subgroup_id: null
+- id: montlake-playfield
+  name: Montlake Playfield
+  facility_id: 307
+  tenant_slug: seattle
+  courts:
+  - id: 1376
+    name: Montlake Playfield Tennis Court 02
+    subgroup_id: null
+- id: mount-baker-park
+  name: Mount Baker Park
+  facility_id: 310
+  tenant_slug: seattle
+  courts:
+  - id: 1378
+    name: Mount Baker Park Tennis Court 02
+    subgroup_id: null
+- id: observatory-courts
+  name: Observatory Courts
+  facility_id: 349
+  tenant_slug: seattle
+  courts:
+  - id: 1120
+    name: Observatory Tennis Court 02
+    subgroup_id: null
+- id: rainier-beach-playfield
+  name: Rainier Beach Playfield
+  facility_id: 407
+  tenant_slug: seattle
+  courts:
+  - id: 1379
+    name: Rainier Beach Playfield Tennis Court 01
+    subgroup_id: null
+  - id: 1380
+    name: Rainier Beach Playfield Tennis Court 02
+    subgroup_id: null
+  - id: 1381
+    name: Rainier Beach Playfield Tennis Court 03
+    subgroup_id: null
+- id: rainier-playfield
+  name: Rainier Playfield
+  facility_id: 410
+  tenant_slug: seattle
+  courts:
+  - id: 1383
+    name: Rainier Playfield Tennis Court 01
+    subgroup_id: null
+  - id: 1384
+    name: Rainier Playfield Tennis Court 02
+    subgroup_id: null
+  - id: 1385
+    name: Rainier Playfield Tennis Court 03
+    subgroup_id: null
+- id: rogers-eastlake-playfield
+  name: Rogers (Eastlake) Playfield
+  facility_id: 425
+  tenant_slug: seattle
+  courts:
+  - id: 1389
+    name: Rogers Playfield Tennis Court 01
+    subgroup_id: null
+- id: sam-smith-park-i-90-lid
+  name: Sam Smith Park (I-90 Lid)
+  facility_id: 429
+  tenant_slug: seattle
+  courts:
+  - id: 1391
+    name: Sam Smith (I90 Lid) Park Tennis Court 01
+    subgroup_id: null
+- id: sealth-high-school-stadium-complex
+  name: Sealth High School Stadium Complex
+  facility_id: 439
+  tenant_slug: seattle
+  courts:
+  - id: 2281
+    name: Sealth HS Complex Tennis Court 01
+    subgroup_id: null
+  - id: 2282
+    name: Sealth HS Complex Tennis Court 02
+    subgroup_id: null
+  - id: 2283
+    name: Sealth HS Complex Tennis Court 03
+    subgroup_id: null
+  - id: 2284
+    name: Sealth HS Complex Tennis Court 04
+    subgroup_id: null
+  - id: 2285
+    name: Sealth HS Complex Tennis Court 05
+    subgroup_id: null
+  - id: 2286
+    name: Sealth HS Complex Tennis Court 06
+    subgroup_id: null
+- id: seward-park
+  name: Seward Park
+  facility_id: 20
+  tenant_slug: seattle
+  courts:
+  - id: 2437
+    name: Seward Park Tennis Court 02
+    subgroup_id: null
+- id: solstice-park
+  name: Solstice Park
+  facility_id: 219
+  tenant_slug: seattle
+  courts:
+  - id: 1393
+    name: Solstice Park Tennis Court 01
+    subgroup_id: null
+  - id: 1394
+    name: Solstice Park Tennis Court 02
+    subgroup_id: null
+  - id: 1395
+    name: Solstice Park Tennis Court 03
+    subgroup_id: null
+- id: soundview-playfield-athletics
+  name: Soundview Playfield (Athletics)
+  facility_id: 230
+  tenant_slug: seattle
+  courts:
+  - id: 1399
+    name: Soundview Playfield Tennis Court 01
+    subgroup_id: null
+- id: volunteer-park
+  name: Volunteer Park
+  facility_id: 21
+  tenant_slug: seattle
+  courts:
+  - id: 365
+    name: Volunteer Park Court 01 - Upper
+    subgroup_id: null
+  - id: 363
+    name: Volunteer Park Court 03 - Lower
+    subgroup_id: null
+  - id: 364
+    name: Volunteer Park Court 04 - Lower
+    subgroup_id: null
+- id: wallingford-playfield-athletics
+  name: Wallingford Playfield (Athletics)
+  facility_id: 260
+  tenant_slug: seattle
+  courts:
+  - id: 1408
+    name: Wallingford Playfield Tennis Court 01
+    subgroup_id: null
+- id: walt-hundley-playfield
+  name: Walt Hundley Playfield
+  facility_id: 253
+  tenant_slug: seattle
+  courts:
+  - id: 1410
+    name: Walt Hundley Playfield Tennis Court 01
+    subgroup_id: null
 preferences:
   time_window:
-    start: "18:00"
-    end: "21:00"
+    start: '18:00:00'
+    end: '21:00:00'
   date_horizon_days: 14
   duration_min_minutes: 60
   duration_max_minutes: 120
@@ -24,13 +477,11 @@ preferences:
     max_any_court_gap_min: 0
     max_same_court_gap_min: 30
   facility_rank: []
-
 polling:
   interval_seconds: 30
   jitter_frac: 0.2
   max_runtime_hours: 24
   max_posts_per_cycle: 4
-
 notifications:
   macos: true
   webhook_url: null

@@ -96,19 +96,32 @@ def create_app(config_file: Path | None = None) -> FastAPI:
         if cfg is not None:
             now = datetime.now()
             for f in cfg.facilities:
-                opens = next_window_open(
-                    days_ahead=f.booking_window.days_ahead,
-                    opens_at_local=f.booking_window.opens_at_local,
-                    tz=cfg.defaults.timezone,
-                )
+                # Bay-area facilities have a `booking_window`; Seattle facilities don't
+                # (Seattle's release schedule varies per facility-type and is empirical).
+                booking_window = getattr(f, "booking_window", None)
+                next_open = None
+                next_open_in = None
+                if booking_window is not None:
+                    next_open = next_window_open(
+                        days_ahead=booking_window.days_ahead,
+                        opens_at_local=booking_window.opens_at_local,
+                        tz=cfg.defaults.timezone,
+                    )
+                    next_open_in = (next_open - now.astimezone(next_open.tzinfo)).total_seconds()
+                org_id = getattr(f, "org_id", None) or getattr(f, "facility_id", None)
+                session_file = None
+                session_exists = False
+                if org_id is not None:
+                    session_file = f"state/session/{org_id}.json"
+                    session_exists = (
+                        area.config_path.parents[1] / "state" / "session" / f"{org_id}.json"
+                    ).exists()
                 cards.append({
                     "facility": f,
-                    "next_open": opens,
-                    "next_open_in": (opens - now.astimezone(opens.tzinfo)).total_seconds(),
-                    "session_path": f"state/session/{f.org_id}.json",
-                    "session_exists": (
-                        area.config_path.parents[1] / "state" / "session" / f"{f.org_id}.json"
-                    ).exists(),
+                    "next_open": next_open,
+                    "next_open_in": next_open_in,
+                    "session_path": session_file,
+                    "session_exists": session_exists,
                 })
         return TEMPLATES.TemplateResponse(
             request, "status.html",

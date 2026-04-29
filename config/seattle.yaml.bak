@@ -1,0 +1,36 @@
+version: 1
+
+credentials:
+  source: keyring
+  keyring_service: seattle-courtbot
+
+defaults:
+  timezone: America/Los_Angeles
+  log_level: INFO
+
+# Filled by `seattle-courtbot discover` once the API surface is mapped.
+member_id: null
+facilities: []
+
+preferences:
+  time_window:
+    start: "18:00"
+    end: "21:00"
+  date_horizon_days: 14
+  duration_min_minutes: 60
+  duration_max_minutes: 120
+  pairing:
+    slot_duration_min: 30
+    max_any_court_gap_min: 0
+    max_same_court_gap_min: 30
+  facility_rank: []
+
+polling:
+  interval_seconds: 30
+  jitter_frac: 0.2
+  max_runtime_hours: 24
+  max_posts_per_cycle: 4
+
+notifications:
+  macos: true
+  webhook_url: null

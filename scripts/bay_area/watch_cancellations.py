@@ -53,6 +53,9 @@ POLL_INTERVAL_S = 30.0
 POLL_JITTER_FRAC = 0.2
 MAX_RUNTIME_S = 365 * 24 * 3600   # effectively unbounded — stop with TaskStop / Ctrl-C
 MAX_POSTS_PER_CYCLE = 4   # cancellations are rare; 4 attempts per cycle is plenty
+# Skip slots whose start is sooner than `now + MIN_LEAD_TIME_HOURS` in local time.
+# Avoids booking same-day / overnight slots that the user can't easily prepare for.
+MIN_LEAD_TIME_HOURS = 12
 MIN_DELAY_BETWEEN_POSTS_S = 1.0
 
 # Per-(facility, date) blacklist on WindowNotOpen.
@@ -279,6 +282,11 @@ class CancellationWatcher:
         """
         max_dur = _max_duration_within_window(start_local)
         if max_dur is None:
+            return False
+        # Lead-time gate: never book within MIN_LEAD_TIME_HOURS of now (local).
+        slot_start = datetime.combine(day, start_local, tzinfo=LOCAL)
+        threshold = datetime.now(LOCAL) + timedelta(hours=MIN_LEAD_TIME_HOURS)
+        if slot_start < threshold:
             return False
         for dur in DURATIONS:
             if dur > max_dur:

@@ -60,6 +60,9 @@ POLL_INTERVAL_S = 90.0
 POLL_JITTER_FRAC = 0.2
 MAX_RUNTIME_S = 365 * 24 * 3600   # effectively unbounded — stop with TaskStop / Ctrl-C
 MAX_POSTS_PER_CYCLE = 6
+# Skip slots whose start is sooner than `now + MIN_LEAD_TIME_HOURS` in local time.
+# Avoids booking same-day / overnight slots that the user can't easily prepare for.
+MIN_LEAD_TIME_HOURS = 12
 MIN_DELAY_BETWEEN_POSTS_S = 2.0
 
 # Per-(facility, date) blacklist after WindowNotOpen.
@@ -164,6 +167,13 @@ class Poller:
         ledger. Returns True iff we got a confirmation."""
         start_t = next(s for n, s, _ in PIECES if n == piece_name)
         duration = next(d for n, _, d in PIECES if n == piece_name)
+        # Lead-time gate: never book within MIN_LEAD_TIME_HOURS of now (local).
+        slot_start = datetime.combine(day, start_t, tzinfo=LOCAL)
+        threshold = datetime.now(LOCAL) + timedelta(hours=MIN_LEAD_TIME_HOURS)
+        if slot_start < threshold:
+            print(f"  [{facility.id}] {day} {piece_name}: skipped — under "
+                  f"{MIN_LEAD_TIME_HOURS}h lead time")
+            return False
         for court_id in court_ids:
             if is_already_confirmed(
                 facility=facility.id, date=day.isoformat(),

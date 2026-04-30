@@ -110,22 +110,25 @@ async def discover() -> DiscoverResult:
 
 
 async def _try_member_id() -> int | None:
-    """Attempt to read member_id from a logged-in session. Returns None if no
-    session or the home page bootstrap doesn't expose the customer id."""
+    """Read customer_id from a logged-in session via /rest/system/loginuserext.
+    Verified live 2026-04-29 — returns the `body.user.customerid` field, which is
+    the same id ANC uses everywhere as `customer_id` in booking requests."""
     log = get_logger(mode="discover")
     try:
+        from seattle_courtbot.ancapi import endpoints
         from seattle_courtbot.auth.session import build_client
     except Exception:
         return None
     try:
         async with build_client(http2=False) as client:
-            r = await client.get("/seattle/home")
+            r = await client.get(endpoints.login_user_ext())
             if r.status_code != 200:
                 return None
-            for pat in _MEMBER_ID_PATTERNS:
-                m = pat.search(r.text)
-                if m:
-                    return int(m.group(1))
+            payload = r.json()
+            user = (payload.get("body") or {}).get("user") or {}
+            cid = user.get("customerid")
+            if cid:
+                return int(cid)
     except Exception as exc:
         log.info("discover.member_id_skip", reason=str(exc))
     return None

@@ -27,6 +27,37 @@ def search_options(tenant: str = "seattle") -> str:
     return f"/{tenant}/rest/reservation/resource/searchoptions?locale=en-US"
 
 
-# Phase 2 placeholders — the schedule + booking endpoints will be added once
-# scripts/seattle/probe_seattle_resource_detail.py and probe_seattle_booking.py
-# capture them from the per-resource detail page and the booking modal.
+# Phase 2 endpoints captured live 2026-04-29 via probe_seattle_click_into.py.
+
+def login_user_ext(tenant: str = "seattle") -> str:
+    """GET: returns the logged-in user's customer id (`body.user.customerid`),
+    encoded id, name, email, and family-member ids."""
+    return f"/{tenant}/rest/system/loginuserext?locale=en-US"
+
+
+def availability_daily(resource_id: int, tenant: str = "seattle") -> str:
+    """GET: per-day availability for one court. Query params: start_date,
+    end_date (YYYY-MM-DD), customer_id, company_id, attendee, event_type_id.
+    Response body shape: `{details: {resource_id, reservation_unit, daily_details:
+    [{date, status, times:[{start_time, end_time, available, is_cross_day}], ...}]}}`."""
+    return f"/{tenant}/rest/reservation/resource/availability/daily/{resource_id}"
+
+
+def resource_detail(resource_id: int, tenant: str = "seattle") -> str:
+    """GET: per-resource detail page payload (event types, rules, etc.)."""
+    return f"/{tenant}/rest/reservation/resource/detail/{resource_id}"
+
+
+def resource_form_data(resource_id: int, tenant: str = "seattle") -> str:
+    """POST: returns booking form context — family members, event types, time groups."""
+    return f"/{tenant}/rest/reservation/resource/detail/{resource_id}/formdata?locale=en-US"
+
+
+def reservation_validation(tenant: str = "seattle") -> str:
+    """POST: pre-flight validation of a reservation request. Body includes
+    customer_id, resource_id, reservation_time_groups, event_type_id, etc."""
+    return f"/{tenant}/rest/reservation/resource/validation?locale=en-US"
+
+
+# The actual booking-submit endpoint will land once probe_seattle_booking.py
+# drives the modal end-to-end and captures the POST.

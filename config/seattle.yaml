@@ -5,7 +5,7 @@ credentials:
 defaults:
   timezone: America/Los_Angeles
   log_level: INFO
-member_id: null
+member_id: 422698
 facilities:
 - id: alki-playfield
   name: Alki Playfield

@@ -117,9 +117,27 @@ def book(
 
 
 @app.command()
-def watch() -> None:
-    """Long-running cancellation watcher. (Phase 3 — not yet implemented.)"""
-    raise typer.Exit("Phase 3: not yet implemented")
+def watch(
+    commit: bool = typer.Option(
+        False, "--commit/--dry-run",
+        help="With --commit the watcher will actually book matches (REAL MONEY). "
+             "Default --dry-run only validates + reports the would-be fee.",
+    ),
+    config: Path | None = typer.Option(None, "--config", "-c"),
+) -> None:
+    """Watch Seattle ANC for newly-available 6-9 PM slots and book matches.
+
+    DRY-RUN by default — Seattle bookings are paid; the watcher will only
+    *log* what it would book. Re-run with --commit to actually create bookings."""
+    from seattle_courtbot.watcher.poller import run_watcher
+
+    cfg = load_config(config or config_path())
+    if commit:
+        console.print("[red]COMMIT MODE[/red] — bookings will be CREATED and CHARGED.")
+    else:
+        console.print("[yellow]DRY-RUN[/yellow] — no bookings will be created. "
+                      "Use --commit to enable real booking.")
+    asyncio.run(run_watcher(cfg, commit=commit))
 
 
 if __name__ == "__main__":

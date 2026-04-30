@@ -137,6 +137,65 @@ def create_app(config_file: Path | None = None) -> FastAPI:
             {**_common_ctx(area), "rows": rows},
         )
 
+    @app.get("/areas/{area_id}/availability", response_class=HTMLResponse)
+    async def area_availability(
+        request: Request,
+        area_id: str,
+        days_ahead: int = 14,
+        start: str = "17:00",
+        end: str = "21:00",
+        min_duration_min: int = 60,
+        facility: str | None = None,
+        lights_only: bool = False,
+    ) -> HTMLResponse:
+        """Live availability scan for an area. Currently only wired for Seattle.
+
+        Each row deep-links to the platform's resource detail page so the user
+        completes the booking manually in their browser."""
+        from datetime import time as _dtime
+
+        area = _resolve_area(area_id)
+        slots: list = []
+        error: str | None = None
+        if area.facility_module != "seattle_courtbot":
+            error = (f"Live availability scan isn't wired for {area.label} yet — "
+                     "currently Seattle-only.")
+        else:
+            try:
+                from seattle_courtbot.availability import scan as scan_seattle
+                from seattle_courtbot.config import load_config as load_seattle_config
+
+                seattle_cfg = load_seattle_config(area.config_path)
+                ws = _dtime.fromisoformat(start) if start else None
+                we = _dtime.fromisoformat(end) if end else None
+                facility_filter = {facility} if facility else None
+                slots = await scan_seattle(
+                    seattle_cfg,
+                    days_ahead=days_ahead,
+                    window_start=ws, window_end=we,
+                    min_duration_min=min_duration_min,
+                    facility_filter=facility_filter,
+                )
+                if lights_only:
+                    slots = [s for s in slots if s.is_lights]
+            except Exception as exc:
+                error = f"{type(exc).__name__}: {exc}"
+                slots = []
+        # Distinct facilities present in the result, for the filter dropdown.
+        facilities_in_results = sorted({(s.facility_id, s.facility_name) for s in slots})
+        return TEMPLATES.TemplateResponse(
+            request, "availability.html",
+            {
+                **_common_ctx(area), "slots": slots, "error": error,
+                "filters": {
+                    "days_ahead": days_ahead, "start": start, "end": end,
+                    "min_duration_min": min_duration_min, "facility": facility or "",
+                    "lights_only": lights_only,
+                },
+                "facilities_in_results": facilities_in_results,
+            },
+        )
+
     @app.get("/areas/{area_id}/discarded", response_class=HTMLResponse)
     async def area_discarded(request: Request, area_id: str) -> HTMLResponse:
         area = _resolve_area(area_id)

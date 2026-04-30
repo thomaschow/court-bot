@@ -41,6 +41,9 @@
   <nav class="page-tabs" aria-label="Page">
     <ul>
       <li><a href="/areas/{{ area.id }}/" {% if active_page == 'status' %}class="active"{% endif %}>Status</a></li>
+      {% if area.id == 'seattle' %}
+      <li><a href="/areas/{{ area.id }}/availability" {% if active_page == 'availability' %}class="active"{% endif %}>Availability</a></li>
+      {% endif %}
       <li><a href="/areas/{{ area.id }}/bookings" {% if active_page == 'bookings' %}class="active"{% endif %}>Bookings</a></li>
       <li><a href="/areas/{{ area.id }}/discarded" {% if active_page == 'discarded' %}class="active"{% endif %}>Discarded</a></li>
       <li><a href="/areas/{{ area.id }}/logs" {% if active_page == 'logs' %}class="active"{% endif %}>Logs</a></li>

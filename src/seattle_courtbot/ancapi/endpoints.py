@@ -59,5 +59,27 @@ def reservation_validation(tenant: str = "seattle") -> str:
     return f"/{tenant}/rest/reservation/resource/validation?locale=en-US"
 
 
-# The actual booking-submit endpoint will land once probe_seattle_booking.py
-# drives the modal end-to-end and captures the POST.
+def proceed_to_form(tenant: str = "seattle") -> str:
+    """POST: advances a validated reservation request to the checkout form.
+    Body is the same shape as validation; response: `{status:"success",
+    next_page:"reservation/form"}`."""
+    return f"/{tenant}/rest/reservation/resource/proceed?locale=en-US"
+
+
+def form(tenant: str = "seattle") -> str:
+    """GET: checkout form state (event types, schedules, fees, timestamp).
+    Path is `/reservation/form/0` for new reservations (reno=0)."""
+    return f"/{tenant}/rest/reservation/form/0?locale=en-US"
+
+
+def form_participants(tenant: str = "seattle") -> str:
+    """GET: family members + companies available as reservation participants."""
+    return f"/{tenant}/rest/reservation/form/participants?locale=en-US"
+
+
+def form_reserve(reno: int, timestamp: int, tenant: str = "seattle") -> str:
+    """POST: FINAL booking submission. `reno` = reservation number (0 for new),
+    `timestamp` = the integer returned in the GET /form/0 response body. URL
+    pattern verified live in the SPA's JS bundle:
+    `/reservation/form/reserve/{reno}/{timestamp}`."""
+    return f"/{tenant}/rest/reservation/form/reserve/{reno}/{timestamp}?locale=en-US"

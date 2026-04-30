@@ -4,13 +4,20 @@ from __future__ import annotations
 
 import httpx
 
+from datetime import date as ddate
+
 from seattle_courtbot.ancapi import endpoints
 from seattle_courtbot.ancapi.errors import (
     AncError,
     AuthExpired,
     RateLimited,
 )
-from seattle_courtbot.ancapi.parsing import CourtItem, parse_resource_search
+from seattle_courtbot.ancapi.parsing import (
+    AvailabilityRange,
+    CourtItem,
+    parse_availability_daily,
+    parse_resource_search,
+)
 
 
 class AncClient:
@@ -62,6 +69,39 @@ class AncClient:
             raise RateLimited("429 on search_courts")
         resp.raise_for_status()
         return parse_resource_search(resp.json())
+
+    async def read_availability(
+        self,
+        resource_id: int,
+        *,
+        start_date: ddate,
+        end_date: ddate,
+        customer_id: int,
+        company_id: int = 0,
+        attendee: int = 0,
+        event_type_id: int = 0,
+    ) -> list[AvailabilityRange]:
+        """Per-day availability for one court over a date range. Verified live
+        2026-04-29 — returns time RANGES per day (not 30-min slices); the
+        watcher converts those into slices via `to_slices()`."""
+        params = {
+            "start_date": start_date.isoformat(),
+            "end_date": end_date.isoformat(),
+            "customer_id": customer_id,
+            "company_id": company_id,
+            "attendee": attendee,
+            "event_type_id": event_type_id,
+            "locale": "en-US",
+        }
+        resp = await self._http.get(
+            endpoints.availability_daily(resource_id), params=params,
+        )
+        if resp.status_code in (401, 403):
+            raise AuthExpired(f"{resp.status_code} on availability")
+        if resp.status_code == 429:
+            raise RateLimited("429 on availability")
+        resp.raise_for_status()
+        return parse_availability_daily(resp.json(), resource_id)
 
     async def search_courts(
         self,

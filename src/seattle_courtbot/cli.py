@@ -59,9 +59,61 @@ def validate_config(
 
 
 @app.command()
-def book() -> None:
-    """Manually book a slot. (Phase 2 — not yet implemented.)"""
-    raise typer.Exit("Phase 2: not yet implemented")
+def book(
+    facility: str = typer.Option(..., "--facility", "-f", help="Facility id from config"),
+    court: int = typer.Option(..., "--court", help="Court resource_id"),
+    date: str = typer.Option(..., "--date", help="YYYY-MM-DD"),
+    start: str = typer.Option(..., "--start", help="HH:MM local"),
+    duration: int = typer.Option(60, "--duration", min=60, max=180),
+    attendees: int = typer.Option(2, "--attendees", min=1),
+    event_name: str = typer.Option("Tennis booking", "--event-name"),
+    dry_run: bool = typer.Option(True, "--dry-run/--commit",
+                                  help="With --commit you WILL be charged the booking fee."),
+    config: Path | None = typer.Option(None, "--config", "-c"),
+) -> None:
+    """Book a Seattle tennis court. Defaults to --dry-run (validate + show fee, no charge)."""
+    import asyncio as _asyncio
+    from datetime import date as _ddate, datetime as _dt
+
+    from seattle_courtbot.ancapi.booking import BookingRequest, book as do_book
+    from seattle_courtbot.ancapi.csrf import fetch_csrf_token
+    from seattle_courtbot.auth.session import build_client
+    from seattle_courtbot.paths import session_path
+
+    cfg = load_config(config or config_path())
+    f = cfg.facility(facility)
+    if cfg.member_id is None:
+        raise typer.Exit("config.member_id is null — run `seattle-courtbot discover` first")
+
+    req = BookingRequest(
+        customer_id=cfg.member_id, resource_id=court,
+        event_type_id=152,            # Tennis - Outdoor
+        attendee_count=attendees,
+        date=_ddate.fromisoformat(date),
+        start=_dt.strptime(start, "%H:%M").time(),
+        duration_minutes=duration,
+        event_name=event_name,
+    )
+
+    async def _run():
+        token = await fetch_csrf_token(storage_state_path=str(session_path()))
+        async with build_client(http2=False) as client:
+            return await do_book(client, req, csrf=token, dry_run=dry_run)
+
+    result = _asyncio.run(_run())
+    if dry_run:
+        if result.success:
+            console.print(f"[yellow]Dry-run OK[/yellow] — fee would be ${result.fee_total}; "
+                          f"re-run with --commit to actually book.")
+        else:
+            console.print(f"[red]Validation failed[/red]: {result.raw}")
+            raise typer.Exit(code=1)
+    else:
+        if result.success:
+            console.print(f"[green]Booked[/green] — confirmation #{result.confirmation_id}")
+        else:
+            console.print(f"[red]Failed[/red]: {result.raw}")
+            raise typer.Exit(code=1)
 
 
 @app.command()

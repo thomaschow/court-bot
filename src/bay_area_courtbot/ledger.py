@@ -147,14 +147,28 @@ def record_confirmed(
 def count_confirmed_on_date(
     *, facility: str, date: str, path: Path | None = None,
 ) -> int:
-    """Count confirmed bookings on a specific date for a facility. Used by the
-    `MAX_BOOKINGS_PER_DATE` guardrail so the watcher doesn't over-book the same day."""
+    """Count confirmed bookings on a specific date for a facility."""
     with _conn(path) as c:
         row = c.execute(
             "SELECT COUNT(*) FROM confirmed_bookings WHERE facility=? AND date=?",
             (facility, date),
         ).fetchone()
         return int(row[0]) if row else 0
+
+
+def confirmed_facilities_on_date(
+    *, date: str, path: Path | None = None,
+) -> set[str]:
+    """Return the distinct set of facility ids with confirmed bookings on
+    `date`. Used to enforce the single-facility-per-date guardrail: once one
+    facility has any booking on a date, the watcher should not book a *different*
+    facility on the same date."""
+    with _conn(path) as c:
+        rows = c.execute(
+            "SELECT DISTINCT facility FROM confirmed_bookings WHERE date=?",
+            (date,),
+        ).fetchall()
+    return {r[0] for r in rows}
 
 
 def list_confirmed_on_date(

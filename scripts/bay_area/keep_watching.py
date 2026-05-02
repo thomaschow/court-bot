@@ -39,7 +39,9 @@ from bay_area_courtbot.courtreserve.errors import (
     AllCourtsTaken, AuthExpired, CourtReserveError, RateLimited, SlotTaken, WindowNotOpen,
 )
 from bay_area_courtbot.courtreserve.payloads import BookingCandidate
-from bay_area_courtbot.ledger import is_already_confirmed, list_recent
+from bay_area_courtbot.ledger import (
+    count_confirmed_on_date, is_already_confirmed, list_recent,
+)
 from bay_area_courtbot.notify import notify_macos
 from bay_area_courtbot.paths import config_path
 
@@ -63,6 +65,10 @@ MAX_POSTS_PER_CYCLE = 6
 # Skip slots whose start is sooner than `now + MIN_LEAD_TIME_HOURS` in local time.
 # Avoids booking same-day / overnight slots that the user can't easily prepare for.
 MIN_LEAD_TIME_HOURS = 12
+# Cap per-(facility, date) confirmed bookings. The watcher will skip any
+# attempt that would push a date past this many bookings on that facility.
+# Default 1: avoids accumulating overlapping/redundant slots on the same day.
+MAX_BOOKINGS_PER_DATE = 1
 MIN_DELAY_BETWEEN_POSTS_S = 2.0
 
 # Per-(facility, date) blacklist after WindowNotOpen.
@@ -173,6 +179,15 @@ class Poller:
         if slot_start < threshold:
             print(f"  [{facility.id}] {day} {piece_name}: skipped — under "
                   f"{MIN_LEAD_TIME_HOURS}h lead time")
+            return False
+        # Per-date cap: don't pile multiple bookings onto the same facility/date.
+        existing = count_confirmed_on_date(
+            facility=facility.id, date=day.isoformat(),
+        )
+        if existing >= MAX_BOOKINGS_PER_DATE:
+            print(f"  [{facility.id}] {day} {piece_name}: skipped — already "
+                  f"{existing} confirmed booking(s) on this date "
+                  f"(MAX_BOOKINGS_PER_DATE={MAX_BOOKINGS_PER_DATE})")
             return False
         for court_id in court_ids:
             if is_already_confirmed(

@@ -35,7 +35,9 @@ from bay_area_courtbot.courtreserve.errors import (
     AllCourtsTaken, AuthExpired, CourtReserveError, RateLimited, WindowNotOpen,
 )
 from bay_area_courtbot.courtreserve.payloads import BookingCandidate
-from bay_area_courtbot.ledger import is_already_confirmed, record_discarded
+from bay_area_courtbot.ledger import (
+    count_confirmed_on_date, is_already_confirmed, record_discarded,
+)
 from bay_area_courtbot.notify import notify_macos
 from bay_area_courtbot.paths import config_path
 
@@ -56,6 +58,9 @@ MAX_POSTS_PER_CYCLE = 4   # cancellations are rare; 4 attempts per cycle is plen
 # Skip slots whose start is sooner than `now + MIN_LEAD_TIME_HOURS` in local time.
 # Avoids booking same-day / overnight slots that the user can't easily prepare for.
 MIN_LEAD_TIME_HOURS = 12
+# Cap per-(facility, date) confirmed bookings — avoid piling cancellations on
+# top of an already-booked day.
+MAX_BOOKINGS_PER_DATE = 1
 MIN_DELAY_BETWEEN_POSTS_S = 1.0
 
 # Per-(facility, date) blacklist on WindowNotOpen.
@@ -287,6 +292,12 @@ class CancellationWatcher:
         slot_start = datetime.combine(day, start_local, tzinfo=LOCAL)
         threshold = datetime.now(LOCAL) + timedelta(hours=MIN_LEAD_TIME_HOURS)
         if slot_start < threshold:
+            return False
+        # Per-date cap: don't grab cancellations on a date that's already booked.
+        existing = count_confirmed_on_date(
+            facility=facility.id, date=day.isoformat(),
+        )
+        if existing >= MAX_BOOKINGS_PER_DATE:
             return False
         for dur in DURATIONS:
             if dur > max_dur:

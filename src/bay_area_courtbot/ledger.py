@@ -144,6 +144,34 @@ def record_confirmed(
             ) from exc
 
 
+def count_confirmed_on_date(
+    *, facility: str, date: str, path: Path | None = None,
+) -> int:
+    """Count confirmed bookings on a specific date for a facility. Used by the
+    `MAX_BOOKINGS_PER_DATE` guardrail so the watcher doesn't over-book the same day."""
+    with _conn(path) as c:
+        row = c.execute(
+            "SELECT COUNT(*) FROM confirmed_bookings WHERE facility=? AND date=?",
+            (facility, date),
+        ).fetchone()
+        return int(row[0]) if row else 0
+
+
+def list_confirmed_on_date(
+    *, date: str, path: Path | None = None,
+) -> list[BookingRecord]:
+    """All confirmed bookings on a date, across all facilities. Powers the daily
+    digest CLI/SMS."""
+    with _conn(path) as c:
+        rows = c.execute(
+            "SELECT facility, date, start_time, duration_minutes, court_id, mode, "
+            "       'confirmed' AS status, confirmation_id, NULL AS error, created_at "
+            "FROM confirmed_bookings WHERE date = ? ORDER BY start_time",
+            (date,),
+        ).fetchall()
+    return [BookingRecord(**dict(r)) for r in rows]
+
+
 def record_attempt(
     *,
     facility: str,

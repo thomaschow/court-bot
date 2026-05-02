@@ -243,6 +243,33 @@ def watch(
 
 
 @app.command()
+def digest(
+    send: bool = typer.Option(False, "--send/--dry-run",
+                               help="With --send actually sends via macOS Messages."),
+    date: str | None = typer.Option(None, "--date",
+                                     help="YYYY-MM-DD; default = today (PT)"),
+    phone: str | None = typer.Option(None, "--phone",
+                                     help="Override config's sms_phone"),
+    config: Path | None = typer.Option(None, "--config", "-c"),
+) -> None:
+    """Print (or send) the daily booking digest. Defaults to dry-run."""
+    from bay_area_courtbot.digest import build_and_send
+
+    cfg = _load(config)
+    target_phone = phone or (cfg.notifications.sms_phone if send else None)
+    res = build_and_send(target_phone, dry_run=not send, target_date=date)
+    console.print(f"[bold]{res.date_str}[/bold] — {len(res.bookings)} booking(s)")
+    console.print()
+    console.print(res.message)
+    if send:
+        if res.sent:
+            console.print(f"\n[green]✓ sent via Messages[/green] → {target_phone}")
+        else:
+            console.print(f"\n[red]✗ send failed[/red]: {res.error}")
+            raise typer.Exit(code=1)
+
+
+@app.command()
 def web(
     host: str = typer.Option("127.0.0.1", "--host"),
     port: int = typer.Option(8787, "--port"),

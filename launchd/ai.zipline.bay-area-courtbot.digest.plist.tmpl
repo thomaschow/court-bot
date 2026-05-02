@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>ai.zipline.bay-area-courtbot.digest</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>{{COURTBOT_BIN}}</string>
+    <string>digest</string>
+    <string>--send</string>
+  </array>
+  <key>RunAtLoad</key>
+  <false/>
+  <key>StartCalendarInterval</key>
+  <array>
+    <dict>
+      <key>Hour</key>
+      <integer>9</integer>
+      <key>Minute</key>
+      <integer>0</integer>
+    </dict>
+  </array>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin</string>
+    <key>COURTBOT_CONFIG</key>
+    <string>{{CONFIG_PATH}}</string>
+  </dict>
+  <key>StandardOutPath</key>
+  <string>{{LOG_DIR}}/digest.out.log</string>
+  <key>StandardErrorPath</key>
+  <string>{{LOG_DIR}}/digest.err.log</string>
+</dict>
+</plist>

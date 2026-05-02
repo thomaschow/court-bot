@@ -94,6 +94,7 @@ class Notifications(BaseModel):
     on_success: bool = True
     on_failure: bool = True
     on_dry_run: bool = False
+    sms_phone: str | None = None   # E.164 like "+14085076667" — used by digest.py
 
 
 class Config(BaseModel):
